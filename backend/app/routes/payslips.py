@@ -1,7 +1,8 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_file
 from .. import db
 from ..models import Employee, Payslip
 from flask_jwt_extended import jwt_required
+from io import BytesIO
 
 payslips_bp = Blueprint("payslips", __name__)
 
@@ -42,6 +43,44 @@ def get_payslip(payslip_id):
         "net": p.net_salary,
         "date_generated": p.date_generated.isoformat() if hasattr(p, "date_generated") and p.date_generated else None,
     }), 200
+
+@payslips_bp.route("/<int:payslip_id>/pdf", methods=["GET"])
+@jwt_required()
+def get_payslip_pdf(payslip_id):
+    p = Payslip.query.get_or_404(payslip_id)
+    e = Employee.query.get_or_404(p.employee_id)
+    html = f"""
+    <html>
+      <head>
+        <meta charset='utf-8'>
+        <style>
+          body {{ font-family: Arial, sans-serif; padding: 24px; }}
+          h1 {{ font-size: 20px; margin-bottom: 8px; }}
+          h2 {{ font-size: 16px; margin: 0 0 16px; color: #444; }}
+          table {{ width: 100%; border-collapse: collapse; }}
+          td, th {{ border: 1px solid #ddd; padding: 8px; }}
+          th {{ background: #f5f5f5; text-align: left; }}
+        </style>
+      </head>
+      <body>
+        <h1>Payslip</h1>
+        <h2>{p.month}</h2>
+        <table>
+          <tr><th>Employee</th><td>{e.name}</td></tr>
+          <tr><th>Department</th><td>{e.department or ''}</td></tr>
+          <tr><th>Gross Salary</th><td>{p.gross_salary:.2f}</td></tr>
+          <tr><th>Deductions</th><td>{p.deductions:.2f}</td></tr>
+          <tr><th>Net Salary</th><td>{p.net_salary:.2f}</td></tr>
+        </table>
+      </body>
+    </html>
+    """
+    try:
+        from weasyprint import HTML
+        pdf_bytes = HTML(string=html).write_pdf()
+        return send_file(BytesIO(pdf_bytes), mimetype="application/pdf", as_attachment=True, download_name=f"payslip_{p.id}.pdf")
+    except ImportError:
+        return jsonify({"error": "PDF generation unavailable. Install 'weasyprint' in the backend environment."}), 501
 
 # --- Analytics Blueprint ---
 from datetime import datetime, timedelta

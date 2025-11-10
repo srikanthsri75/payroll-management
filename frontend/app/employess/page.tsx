@@ -85,6 +85,18 @@ export default function EmployeesPage() {
         }
     };
 
+    const downloadPdf = async (payslipId: number) => {
+        const res = await api.get(`/payslips/${payslipId}/pdf`, { responseType: "blob" });
+        const url = URL.createObjectURL(res.data);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `payslip_${payslipId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    };
+
     return (
         <main className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             <section>
@@ -155,6 +167,7 @@ export default function EmployeesPage() {
                                     <th className="border p-2">Gross</th>
                                     <th className="border p-2">Deductions</th>
                                     <th className="border p-2">Net</th>
+                                    <th className="border p-2">PDF</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -165,10 +178,13 @@ export default function EmployeesPage() {
                                         <td className="border p-2">{p.gross}</td>
                                         <td className="border p-2">{p.deductions}</td>
                                         <td className="border p-2">{p.net}</td>
+                                        <td className="border p-2">
+                                            <button className="text-blue-600 underline" onClick={() => downloadPdf(p.id)}>Download</button>
+                                        </td>
                                     </tr>
                                 ))}
                                 {payslips.length === 0 && (
-                                    <tr><td className="border p-2 text-center" colSpan={5}>No payslips yet</td></tr>
+                                    <tr><td className="border p-2 text-center" colSpan={6}>No payslips yet</td></tr>
                                 )}
                             </tbody>
                         </table>
