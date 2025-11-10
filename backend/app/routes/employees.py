@@ -1,16 +1,19 @@
 from flask import Blueprint, jsonify, request
 from .. import db
 from ..models import Employee
+from flask_jwt_extended import jwt_required
 
 employees_bp = Blueprint("employees", __name__)
 
 @employees_bp.route("/", methods=["GET"])
+@jwt_required()
 def list_employees():
     employees = Employee.query.all()
     data = [{"id": e.id, "name": e.name, "department": e.department, "base_salary": e.base_salary} for e in employees]
     return jsonify(data), 200
 
 @employees_bp.route("/", methods=["POST"])
+@jwt_required()
 def add_employee():
     data = request.get_json() or {}
     name = data.get("name")
@@ -25,6 +28,7 @@ def add_employee():
     return jsonify({"message": "Employee added", "id": emp.id}), 201
 
 @employees_bp.route("/<int:emp_id>", methods=["GET"])
+@jwt_required()
 def get_employee(emp_id):
     emp = Employee.query.get_or_404(emp_id)
     return jsonify({"id": emp.id, "name": emp.name, "department": emp.department, "base_salary": emp.base_salary})
