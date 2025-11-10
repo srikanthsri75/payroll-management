@@ -1,10 +1,12 @@
 from flask import Blueprint, jsonify, request
 from .. import db
 from ..models import Employee, Payslip
+from flask_jwt_extended import jwt_required
 
 payslips_bp = Blueprint("payslips", __name__)
 
 @payslips_bp.route("/generate/<int:emp_id>", methods=["POST"])
+@jwt_required()
 def generate_payslip(emp_id):
     emp = Employee.query.get_or_404(emp_id)
     gross = emp.base_salary
@@ -21,12 +23,14 @@ def generate_payslip(emp_id):
     return jsonify({"message": "Payslip generated", "payslip_id": payslip.id, "net": net}), 201
 
 @payslips_bp.route("/employee/<int:emp_id>", methods=["GET"])
+@jwt_required()
 def list_payslips_for_employee(emp_id):
     payslips = Payslip.query.filter_by(employee_id=emp_id).all()
     data = [{"id": p.id, "month": p.month, "gross": p.gross_salary, "deductions": p.deductions, "net": p.net_salary} for p in payslips]
     return jsonify(data), 200
 
 @payslips_bp.route("/<int:payslip_id>", methods=["GET"])
+@jwt_required()
 def get_payslip(payslip_id):
     p = Payslip.query.get_or_404(payslip_id)
     return jsonify({
@@ -46,6 +50,7 @@ from sqlalchemy import func
 analytics_bp = Blueprint("analytics", __name__)
 
 @analytics_bp.route("/summary", methods=["GET"])
+@jwt_required()
 def analytics_summary():
     total_employees = db.session.query(func.count(Employee.id)).scalar() or 0
     total_payslips = db.session.query(func.count(Payslip.id)).scalar() or 0
@@ -72,10 +77,10 @@ def analytics_summary():
     })
 
 @analytics_bp.route("/payroll_by_month", methods=["GET"])
+@jwt_required()
 def payroll_by_month():
     months = int(request.args.get("months", 6))
     now = datetime.utcnow()
-    # compute start date months ago (approx by 31*months days back, then clamp to first of month)
     approx_start = now - timedelta(days=31 * months)
     start = datetime(year=approx_start.year, month=approx_start.month, day=1)
 
@@ -96,8 +101,9 @@ def payroll_by_month():
     return jsonify(data)
 
 @analytics_bp.route("/payroll_by_department", methods=["GET"])
+@jwt_required()
 def payroll_by_department():
-    month_param = request.args.get("month")  # format YYYY-MM
+    month_param = request.args.get("month")
     if month_param:
         try:
             year, month = map(int, month_param.split("-"))
