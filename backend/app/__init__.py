@@ -28,8 +28,9 @@ def create_app():
 
     # Register routes blueprints
     from .routes.employees import employees_bp
-    from .routes.payslips import payslips_bp
+    from .routes.payslips import payslips_bp, analytics_bp
     app.register_blueprint(employees_bp, url_prefix='/api/employees')
     app.register_blueprint(payslips_bp, url_prefix='/api/payslips')
+    app.register_blueprint(analytics_bp, url_prefix='/api/analytics')
 
     return app
