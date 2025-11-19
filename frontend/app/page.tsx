@@ -1,123 +1,221 @@
-"use client";
-import { useEffect, useState } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/card";
+import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { api } from "@/lib/api";
 
-interface Summary {
-  total_employees: number;
-  total_payslips: number;
-  month_net_total: number;
-}
-
-interface ByMonthItem { month: string; net_total: number }
-interface ByDeptItem { department: string; net_total: number }
-
-export default function Home() {
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [byMonth, setByMonth] = useState<ByMonthItem[]>([]);
-  const [byDept, setByDept] = useState<ByDeptItem[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const [s, m, d] = await Promise.all([
-          api.get("/analytics/summary"),
-          api.get("/analytics/payroll_by_month", { params: { months: 6 } }),
-          api.get("/analytics/payroll_by_department"),
-        ]);
-        setSummary(s.data);
-        setByMonth(m.data);
-        setByDept(d.data);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
-
+export default function Dashboard() {
   return (
-    <main className="min-h-screen bg-zinc-50 dark:bg-black text-black dark:text-zinc-50">
-      <div className="mx-auto max-w-5xl px-6 py-10">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-semibold">Payroll Dashboard</h1>
-            <p className="text-zinc-600 dark:text-zinc-400">Overview of employees and payroll activity</p>
-          </div>
-          <Link href="/employess" className="inline-flex items-center justify-center rounded-md bg-black text-white px-4 py-2 h-9">
-            Go to Employees
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Welcome back! Here's what's happening with your payroll.
+          </p>
+        </div>
+        <Button asChild>
+          <Link href="/employees">
+            View Employees <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <div className="rounded-lg border p-4">
-            <div className="text-sm text-zinc-600">Total Employees</div>
-            <div className="text-2xl font-semibold">{loading ? "—" : summary?.total_employees ?? 0}</div>
-          </div>
-          <div className="rounded-lg border p-4">
-            <div className="text-sm text-zinc-600">Total Payslips</div>
-            <div className="text-2xl font-semibold">{loading ? "—" : summary?.total_payslips ?? 0}</div>
-          </div>
-          <div className="rounded-lg border p-4">
-            <div className="text-sm text-zinc-600">This Month Net Total</div>
-            <div className="text-2xl font-semibold">{loading ? "—" : (summary ? summary.month_net_total.toLocaleString() : 0)}</div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="rounded-lg border p-4">
-            <h2 className="font-semibold mb-3">Payroll by Month</h2>
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="text-left">
-                  <th className="border-b py-2 pr-2">Month</th>
-                  <th className="border-b py-2">Net Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading && (
-                  <tr><td className="py-3 text-zinc-500" colSpan={2}>Loading…</td></tr>
-                )}
-                {!loading && byMonth.length === 0 && (
-                  <tr><td className="py-3 text-zinc-500" colSpan={2}>No data</td></tr>
-                )}
-                {byMonth.map((r) => (
-                  <tr key={r.month}>
-                    <td className="py-2 pr-2">{r.month}</td>
-                    <td className="py-2">{r.net_total.toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="rounded-lg border p-4">
-            <h2 className="font-semibold mb-3">Payroll by Department (This Month)</h2>
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="text-left">
-                  <th className="border-b py-2 pr-2">Department</th>
-                  <th className="border-b py-2">Net Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading && (
-                  <tr><td className="py-3 text-zinc-500" colSpan={2}>Loading…</td></tr>
-                )}
-                {!loading && byDept.length === 0 && (
-                  <tr><td className="py-3 text-zinc-500" colSpan={2}>No data</td></tr>
-                )}
-                {byDept.map((r) => (
-                  <tr key={r.department}>
-                    <td className="py-2 pr-2">{r.department}</td>
-                    <td className="py-2">{r.net_total.toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        </Button>
       </div>
-    </main>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Employees
+            </CardTitle>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              className="h-4 w-4 text-muted-foreground"
+            >
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">24</div>
+            <p className="text-xs text-muted-foreground">
+              +2 from last month
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              This Month's Payroll
+            </CardTitle>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              className="h-4 w-4 text-muted-foreground"
+            >
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">$45,231.89</div>
+            <p className="text-xs text-muted-foreground">
+              +20.1% from last month
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Pending Approvals
+            </CardTitle>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              className="h-4 w-4 text-muted-foreground"
+            >
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">3</div>
+            <p className="text-xs text-muted-foreground">
+              +1 from yesterday
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Upcoming Payday
+            </CardTitle>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              className="h-4 w-4 text-muted-foreground"
+            >
+              <path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z" />
+              <path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9" />
+              <path d="M12 3v6" />
+            </svg>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">May 31, 2023</div>
+            <p className="text-xs text-muted-foreground">
+              5 days remaining
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="col-span-4">
+          <CardHeader>
+            <CardTitle>Recent Payroll</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-8">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      Employee {i + 1}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      May {i + 1}, 2023
+                    </p>
+                  </div>
+                  <div className="ml-auto font-medium">$2,500.00</div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="col-span-3">
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4">
+              <Button variant="outline" className="w-full justify-start">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="mr-2 h-4 w-4"
+                >
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                Add New Employee
+              </Button>
+              <Button variant="outline" className="w-full justify-start">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="mr-2 h-4 w-4"
+                >
+                  <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
+                  <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
+                  <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+                </svg>
+                Process Payroll
+              </Button>
+              <Button variant="outline" className="w-full justify-start">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="mr-2 h-4 w-4"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" x2="12" y1="15" y2="3" />
+                </svg>
+                Export Reports
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }
