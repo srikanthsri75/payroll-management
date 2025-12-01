@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -29,6 +29,18 @@ def create_app(config_name='development'):
     app.register_blueprint(payroll_bp)
     app.register_blueprint(payslip_bp)
     app.register_blueprint(analytics_bp)
+    
+    # Debug route to list all registered routes
+    @app.route('/routes')
+    def list_routes():
+        routes = []
+        for rule in app.url_map.iter_rules():
+            routes.append({
+                'endpoint': rule.endpoint,
+                'methods': sorted(rule.methods),
+                'path': str(rule)
+            })
+        return jsonify({'routes': routes})
     
     # Error handlers
     @app.errorhandler(400)
