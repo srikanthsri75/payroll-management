@@ -1,82 +1,60 @@
-import logging
-from flask import Blueprint, request, jsonify, send_file, current_app
+from flask import Blueprint, request, jsonify, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from app.models import Payslip, User, Employee
 from app.services import PDFService
 from io import BytesIO
 
-# Set up logging
-logger = logging.getLogger(__name__)
-
 payslip_bp = Blueprint('payslips', __name__, url_prefix='/api/payslips')
 
-@payslip_bp.route('', methods=['GET'], strict_slashes=False)
-@payslip_bp.route('/', methods=['GET'])
+@payslip_bp.route('', methods=['GET'])
 @jwt_required()
 def get_payslips():
     """Get payslips with filters"""
-    logger.info("=== PAYSLIPS ROUTE CALLED ===")
-    logger.info(f"Request URL: {request.url}")
-    logger.info(f"Request Headers: {dict(request.headers)}")
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
     
-    try:
-        current_user_id = get_jwt_identity()
-        logger.info(f"Current user ID from JWT: {current_user_id}")
-        
-        user = User.query.get(current_user_id)
-        logger.info(f"User found: {user is not None}")
-        
-        if not user:
-            logger.warning(f"User not found with ID: {current_user_id}")
-            return jsonify({'error': 'User not found'}), 404
-            
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 10, type=int)
-        employee_id = request.args.get('employee_id', type=int)
-        payroll_run_id = request.args.get('payroll_run_id', type=int)
-        
-        query = Payslip.query
-        
-        # Employees can only see their own payslips
-        if user.role == 'employee':
-            employee = Employee.query.filter_by(user_id=user.id).first()
-            if not employee:
-                return jsonify({'error': 'Employee record not found'}), 404
-            query = query.filter_by(employee_id=employee.id)
-        else:
-            if employee_id:
-                query = query.filter_by(employee_id=employee_id)
-                
-        if payroll_run_id:
-            query = query.filter_by(payroll_run_id=payroll_run_id)
-        
-        # Add pagination
-        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-        payslips = pagination.items
-        
-        # Format the response with employee and payroll run details
-        result = []
-        for payslip in payslips:
-            payslip_data = payslip.to_dict()
-            if payslip.employee:
-                payslip_data['employee_name'] = payslip.employee.name
-                payslip_data['employee_id_number'] = payslip.employee.employee_id
-                payslip_data['department'] = payslip.employee.department
-            if payslip.payroll_run:
-                payslip_data['month'] = payslip.payroll_run.month
-                payslip_data['year'] = payslip.payroll_run.year
-            result.append(payslip_data)
-        
-        return jsonify({
-            'payslips': result,
-            'total': pagination.total,
-            'pages': pagination.pages,
-            'current_page': page
-        }), 200
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    employee_id = request.args.get('employee_id', type=int)
+    payroll_run_id = request.args.get('payroll_run_id', type=int)
+    
+    query = Payslip.query
+    
+    # Employees can only see their own payslips
+    if user.role == 'employee':
+        employee = Employee.query.filter_by(user_id=user.id).first()
+        if not employee:
+            return {'error': 'Employee record not found'}, 404
+        query = query.filter_by(employee_id=employee.id)
+    else:
+        if employee_id:
+            query = query.filter_by(employee_id=employee_id)
+    
+    if payroll_run_id:
+        query = query.filter_by(payroll_run_id=payroll_run_id)
+    
+    payslips = query.order_by(Payslip.created_at.desc()).paginate(page=page, per_page=per_page)
+    
+    # Include employee information in response
+    result = []
+    for payslip in payslips.items:
+        payslip_data = payslip.to_dict()
+        if payslip.employee:
+            payslip_data['employee_name'] = payslip.employee.name
+            payslip_data['employee_id_number'] = payslip.employee.employee_id
+            payslip_data['department'] = payslip.employee.department
+        if payslip.payroll_run:
+            payslip_data['month'] = payslip.payroll_run.month
+            payslip_data['year'] = payslip.payroll_run.year
+        result.append(payslip_data)
+    
+    return {
+        'payslips': result,
+        'total': payslips.total,
+        'pages': payslips.pages,
+        'current_page': page
+    }, 200
 
 @payslip_bp.route('/<int:payslip_id>', methods=['GET'])
 @jwt_required()
